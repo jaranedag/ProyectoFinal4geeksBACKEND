@@ -43,15 +43,18 @@ def sitemap():
 @app.route("/signup", methods=["POST"])  
 def signup():
   body = request.get_json()
+  username = body["username"]
   email = body["email"]
   password = body["password"]
+  nombre = body ["nombre"]
+  apellido = body ["apellido"]
 
-  user = User(email=email,password=password,is_active=True)
+  user = User(username=username,email=email,password=password,nombre=nombre,apellido=apellido,is_active=True)
   db.session.add(user)
   db.session.commit()
   
   return jsonify({"email":email,
-  "password":password})
+  "password":password,"nombre":nombre,"apellido":apellido})
 
 @app.route('/login', methods=['POST'])
 def login():
