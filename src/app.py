@@ -10,6 +10,8 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User
 #from models import Person
+import datetime
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -26,6 +28,8 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
+jwt = JWTManager(app)
+
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -36,15 +40,48 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
+@app.route("/signup", methods=["POST"])  
+def signup():
+  body = request.get_json()
+  email = body["email"]
+  password = body["password"]
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+  user = User(email=email,password=password,is_active=True)
+  db.session.add(user)
+  db.session.commit()
+  
+  return jsonify({"email":email,
+  "password":password})
 
-    return jsonify(response_body), 200
+@app.route('/login', methods=['POST'])
+def login():
+      #usuario contraseña :D
+      
+      body = request.get_json()
+      if "email" not in body:
+        return "falta email"
+      if "pass" not in body:
+        return "falta contraseña"  
+      
+      #validar datos
+      #almacenar datos
+      #mensaje de estado
+      user = User.query.filter_by(email=body["email"],password =body["pass"]).first()
+      if(user):
+        #otorgar permisos
+        expira = datetime.timedelta(minutes=1)
+        access = create_access_token(identity=body,expires_delta=expira)
+        return jsonify({
+           "token": access
 
+        })
+      else:
+        return "datos incorrectos"  
+@app.route("/private",methods=["GET"])
+@jwt_required()
+def privada():
+    identidad = get_jwt_identity()
+    return identidad
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
