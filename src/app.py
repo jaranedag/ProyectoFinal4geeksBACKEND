@@ -62,9 +62,9 @@ def login():
       
       body = request.get_json()
       if "email" not in body:
-        return "falta email"
+        return "falta email", 400
       if "pass" not in body:
-        return "falta contraseña"  
+        return "falta contraseña", 400
       
       #validar datos
       #almacenar datos
@@ -77,7 +77,7 @@ def login():
         return jsonify({
            "token": access
 
-        })
+        }), 200
       else:
         return "datos incorrectos"  
 @app.route('/user', methods=['GET','POST'])
