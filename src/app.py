@@ -43,11 +43,24 @@ def sitemap():
 @app.route("/signup", methods=["POST"])  
 def signup():
   body = request.get_json()
+  if "email" not in body:
+        print("email")
+        return "falta email"
+  if "password" not in body:
+        print("pass")
+        return "falta contraseña"
+  if "nombre" not in body:
+        print("nombre")
+        return "falta nombre"
+  if "apellido" not in body:
+        print("apellido")
+        return "falta apellido"
   username = body["username"]
   email = body["email"]
   password = body["password"]
   nombre = body ["nombre"]
   apellido = body ["apellido"]
+
 
   user = User(username=username,email=email,password=password,nombre=nombre,apellido=apellido,is_active=True)
   db.session.add(user)
