@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
+from flask_mail import Mail,Message
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User
@@ -14,6 +15,18 @@ import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
+
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'your_email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your_password'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
+def send_reset_email(user_email, token):
+    msg = Message('Password Reset Request', sender = 'your_email@gmail.com', recipients=[user_email])
+    msg.body = f'To reset your password, visit the following link: {url_for("reset", token=token, _external=True)}'
+    mail.send(msg)
 app.url_map.strict_slashes = False
 
 db_url = os.getenv("DATABASE_URL")
@@ -29,6 +42,7 @@ CORS(app)
 setup_admin(app)
 
 jwt = JWTManager(app)
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -93,6 +107,7 @@ def login():
         }), 200
       else:
         return "datos incorrectos"  
+
 @app.route('/user', methods=['GET','POST'])
 def handle_hello():
     #cuando es un get conseguiremos todos los usuarios 
@@ -126,8 +141,40 @@ def handle_hello():
             else:
                 return(jsonify({"mensaje":False}))
         else:
-            return(jsonify({"mensaje":"mail no se encuentra registrado"}))        
+            return(jsonify({"mensaje":"mail no se encuentra registrado"})) 
+@app.route("/forgotpass",methods=["POST"])     
+def forgot_pass():
+    body = request.get_json()      
+    if "email" not in body:      
+        return "Falta el email",400
+    if "apellido" not in body:
+        return "Falta respuesta secreta",400
+    user = User.query.filter_by(email=body["email"]).first()    
+    if user and user.apellido == body["apellido"]:
+        return jsonify({"message": "respuesta secreta es correcta"}),200
+    else:
+         return "respuesta secreta incorrecta",400  
+@app.route("/changepass",methods=["POST"])     
+def change_pass():
+    body = request.get_json()
+    if "email" not in body:      
+        return "Falta el email",400
+    if "password" not in body:
+        return "Falta contraseña actual",400
+    if "newpass" not in body:
+        return "Falta contraseña nueva" ,400
+    user = User.query.filter_by(email=body["email"]).first()     
+    if user:
+        user.password = body["newpass"] 
+        db.session.commit()
+        return jsonify ({"message":"Contraseña cambiada con exito"}),200
+    else:
+        return "Contraseña actual incorrecta",400
+
+
 @app.route("/private",methods=["GET"])
+
+
 @jwt_required()
 def privada():
     identidad = get_jwt_identity()
